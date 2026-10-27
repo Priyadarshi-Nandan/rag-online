@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* LEFT SIDEBAR */
+        .sidebar {
+            width: 350px;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #222;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: monospace;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .button-primary {
+            background: #0066cc;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .button-primary:hover {
+            background: #0052a3;
+        }
+
+        .button-secondary {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        .button-secondary:hover {
+            background: #d8d8d8;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e8e8e8;
+            margin: 20px 0;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        /* RIGHT PANEL */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+        }
+
+        .header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f9f9f9;
+            font-weight: 500;
+            color: #333;
+        }
+
+        /* CHAT VIEW */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.assistant {
+            text-align: left;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-bubble {
+            background: #0066cc;
+            color: white;
+        }
+
+        .message.assistant .message-bubble {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        .sources {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            margin-left: 0;
+            padding-left: 16px;
+        }
+
+        .source-item {
+            margin-top: 4px;
+        }
+
+        .source-item strong {
+            color: #333;
+        }
+
+        .tokens {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .input-area {
+            padding: 16px 20px;
+            border-top: 1px solid #e0e0e0;
+            background: #f9f9f9;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-wrapper input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        .input-wrapper button {
+            padding: 12px 20px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .input-wrapper button:hover {
+            background: #0052a3;
+        }
+
+        .input-wrapper button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* PDF VIEW */
+        .pdf-container {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            color: #333;
+        }
+
+        .pdf-container.active {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+
+        .error {
+            color: #cc0000;
+            background: #ffe6e6;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- LEFT SIDEBAR -->
+        <div class="sidebar">
+            <h2>Settings</h2>
+
+            <div class="form-group">
+                <label>Base URL</label>
+                <input 
+                    type="text" 
+                    id="baseUrl" 
+                    value="http://localhost:11434/v1"
+                    placeholder="http://localhost:11434/v1"
+                >
+                <p class="info-text">Note: /chat/completions is automatically appended, so provide only the base URL (without /chat/completions).</p>
+            </div>
+
+            <div class="form-group">
+                <label>API Key</label>
+                <input 
+                    type="password" 
+                    id="apiKey" 
+                    value="ollama"
+                    placeholder="ollama"
+                >
+                <p class="info-text">API key for the LLM service</p>
+            </div>
+
+            <div class="form-group">
+                <label>Model</label>
+                <input 
+                    type="text" 
+                    id="model" 
+                    value="qwen2.5:7b"
+                    placeholder="qwen2.5:7b"
+                >
+                <p class="info-text">Model name (e.g., gpt-3.5-turbo, qwen2.5:7b)</p>
+            </div>
+
+            <div class="divider"></div>
+
+            <button class="button button-secondary" id="viewPdfBtn">
+                📄 View PDF
+            </button>
+
+            <p class="info-text" style="margin-top: 12px;">
+                Click to view the solar system PDF. You can then ask questions about it on the right.
+            </p>
+
+            <div class="divider"></div>
+
+            <p class="info-text">
+                <strong>Token calculation:</strong> Counts shown are based on our backend calculation, not the LLM provider's official count.
+            </p>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="main">
+            <div class="header" id="headerText">Chat</div>
+
+            <!-- CHAT VIEW -->
+            <div class="chat-container" id="chatView">
+                <div class="messages" id="messages"></div>
+                <div class="input-area">
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="questionInput" 
+                            placeholder="Ask a question about the solar system..."
+                            autocomplete="off"
+                        >
+                        <button id="sendBtn">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PDF VIEW -->
+            <div class="pdf-container" id="pdfContainer">
+                <div id="pdfContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isViewingPdf = false;
+
+        // DOM elements
+        const baseUrlInput = document.getElementById('baseUrl');
+        const apiKeyInput = document.getElementById('apiKey');
+        const modelInput = document.getElementById('model');
+        const questionInput = document.getElementById('questionInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const messagesDiv = document.getElementById('messages');
+        const viewPdfBtn = document.getElementById('viewPdfBtn');
+        const chatView = document.getElementById('chatView');
+        const pdfContainer = document.getElementById('pdfContainer');
+        const pdfContent = document.getElementById('pdfContent');
+        const headerText = document.getElementById('headerText');
+
+        // Send question when Enter is pressed
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendQuestion();
+            }
+        });
+
+        // Send button click
+        sendBtn.addEventListener('click', sendQuestion);
+
+        // View PDF button
+        viewPdfBtn.addEventListener('click', togglePdfView);
+
+        async function togglePdfView() {
+            isViewingPdf = !isViewingPdf;
+
+            if (isViewingPdf) {
+                chatView.style.display = 'none';
+                pdfContainer.classList.add('active');
+                headerText.textContent = 'Solar System PDF';
+                viewPdfBtn.textContent = '💬 Back to Chat';
+
+                // Fetch PDF if not already loaded
+                if (!pdfContent.textContent) {
+                    pdfContent.textContent = 'Loading PDF...';
+                    try {
+                        const response = await fetch('/pdf');
+                        const data = await response.json();
+                        pdfContent.textContent = data.text;
+                    } catch (err) {
+                        pdfContent.innerHTML = `<div class="error">Error loading PDF: ${err.message}</div>`;
+                    }
+                }
+            } else {
+                chatView.style.display = 'flex';
+                pdfContainer.classList.remove('active');
+                headerText.textContent = 'Chat';
+                viewPdfBtn.textContent = '📄 View PDF';
+                questionInput.focus();
+            }
+        }
+
+        async function sendQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            const baseUrl = baseUrlInput.value.trim();
+            const apiKey = apiKeyInput.value.trim();
+            const model = modelInput.value.trim();
+
+            if (!baseUrl || !apiKey || !model) {
+                alert('Please fill in all API settings');
+                return;
+            }
+
+            // Add user message to chat
+            addMessage(question, 'user');
+            questionInput.value = '';
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        base_url: baseUrl,
+                        api_key: apiKey,
+                        model: model,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    addMessage(
+                        `Error: ${error.detail || response.statusText}`,
+                        'assistant'
+                    );
+                    sendBtn.disabled = false;
+                    return;
+                }
+
+                const data = await response.json();
+
+                // Add assistant message with sources and tokens
+                addMessage(
+                    data.answer,
+                    'assistant',
+                    data.sources,
+                    data.tokens
+                );
+            } catch (err) {
+                addMessage(`Error: ${err.message}`, 'assistant');
+            } finally {
+                sendBtn.disabled = false;
+                questionInput.focus();
+            }
+        }
+
+        function addMessage(text, role, sources = [], tokens = {}) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = text;
+
+            messageDiv.appendChild(bubble);
+
+            // Add sources if present
+            if (sources && sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'sources';
+                sourcesDiv.innerHTML = '<strong>Sources:</strong>';
+                sources.forEach((source) => {
+                    const sourceItem = document.createElement('div');
+                    sourceItem.className = 'source-item';
+                    sourceItem.innerHTML = `<strong>${source.source}</strong> / ${source.heading}`;
+                    sourcesDiv.appendChild(sourceItem);
+                });
+                messageDiv.appendChild(sourcesDiv);
+            }
+
+            // Add token count if present
+            if (tokens && (tokens.prompt || tokens.answer)) {
+                const tokensDiv = document.createElement('div');
+                tokensDiv.className = 'tokens';
+                tokensDiv.textContent = `Tokens: ${tokens.prompt || 0} prompt, ${tokens.answer || 0} answer (our calculation)`;
+                messageDiv.appendChild(tokensDiv);
+            }
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>

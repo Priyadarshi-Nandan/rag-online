@@ -1,0 +1,6 @@
+﻿fastapi
+uvicorn
+chromadb
+rank_bm25
+pypdf
+httpx
